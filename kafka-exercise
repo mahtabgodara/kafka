@@ -1,0 +1,57 @@
+wget http://mirror.tcpdiag.net/apache/kafka/0.8.2.0/kafka_2.10-0.8.2.0.tgz
+tar -xzf kafka_2.10-0.8.2.0.tgz
+cd kafka_2.10-0.8.2.0
+
+bin/zookeeper-server-start.sh config/zookeeper.properties
+
+bin/kafka-server-start.sh config/server.properties
+
+bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic test
+
+bin/kafka-topics.sh --list --zookeeper localhost:2181
+
+bin/kafka-console-producer.sh --broker-list localhost:9092 --topic test
+
+bin/kafka-console-consumer.sh --zookeeper localhost:2181 --topic test --from-beginning
+
+Multi-Node cluster
+
+cp config/server.properties config/server-1.properties
+cp config/server.properties config/server-2.properties
+
+Now edit these new files and set the following properties:
+
+
+config/server-1.properties:
+    broker.id=1
+    port=9093
+    log.dir=/tmp/kafka-logs-1
+
+config/server-2.properties:
+    broker.id=2
+    port=9094
+    log.dir=/tmp/kafka-logs-2
+
+bin/kafka-server-start.sh config/server-1.properties &
+
+bin/kafka-server-start.sh config/server-2.properties &
+
+bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 3 --partitions 1 --topic my-replicated-topic
+
+bin/kafka-topics.sh --describe --zookeeper localhost:2181 --topic my-replicated-topic
+
+bin/kafka-topics.sh --describe --zookeeper localhost:2181 --topic test
+
+bin/kafka-console-producer.sh --broker-list localhost:9092 --topic my-replicated-topic
+
+bin/kafka-console-consumer.sh --zookeeper localhost:2181 --from-beginning --topic my-replicated-topic
+
+ps | grep server-1.properties
+
+kill -9 7564
+
+bin/kafka-topics.sh --describe --zookeeper localhost:2181 --topic my-replicated-topic
+Topic:my-replicated-topic	PartitionCount:1	ReplicationFactor:3	Configs:
+  Topic: my-replicated-topic	Partition: 0	Leader: 2	Replicas: 1,2,0	Isr: 2,0
+
+bin/kafka-console-consumer.sh --zookeeper localhost:2181 --from-beginning --topic my-replicated-topic
